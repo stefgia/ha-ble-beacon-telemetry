@@ -1,6 +1,6 @@
 # HolyIOT BLE
 
-HolyIOT BLE is a Home Assistant integration for HolyIOT Bluetooth tags, such as the nRF52810 button tag. It adds a battery sensor and a button event for each tag, so you can see when a tag needs a new battery and use its button to trigger automations.
+HolyIOT BLE is a Home Assistant integration for HolyIOT Bluetooth tags, such as the nRF52810 button tag. It adds a battery sensor and a long-press event for each tag, so you can see when a tag needs a new battery and use its button to trigger automations.
 
 It works with the Bluetooth adapters and ESPHome Bluetooth proxies you already have in Home Assistant. You don't need custom proxy firmware.
 
@@ -33,10 +33,12 @@ Each tag becomes a device with two entities:
 
 | Entity | What it does |
 | --- | --- |
-| Battery | The battery level in percent. It keeps the last level while the tag is out of range, and after a restart. |
-| Button | Fires a `press` event each time the button is pressed. |
+| Battery | The battery level in percent. It changes in steps of 5 % or more, so the tag's small jumps between readings don't show. It keeps the last level while the tag is out of range, and after a restart. |
+| Button | Fires a `long_press` event when you hold the button for about 3 seconds. |
 
-To run something when the button is pressed, create an automation with the Button entity's state as the trigger:
+The tags don't report short presses, only a long press. After one, wait a few seconds before the next, or the two can count as one.
+
+To run something on a long press, create an automation with the Button entity's state as the trigger:
 
 ```yaml
 triggers:
@@ -56,8 +58,8 @@ The battery and button data only reach Home Assistant while a Bluetooth adapter 
 
 | Mode | Battery | Button |
 | --- | --- | --- |
-| Active | Always current | Every press |
-| Auto (the default for ESPHome proxies) | Updates every few minutes | Only presses during a short active window, so most are missed |
+| Active | Always current | Every long press |
+| Auto (the default for ESPHome proxies) | Updates every few minutes | Only long presses during a short active window, so most are missed |
 | Passive | Never | Never |
 
 On Auto, the integration asks the proxy to scan actively for 10 seconds every 5 minutes for each tag. That's enough for the battery. If you use the button, set at least one proxy near the tag to Active. For an ESPHome proxy, the scanning mode is in the ESPHome integration's options.

@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import HolyIotConfigEntry
 from .entity import HolyIotEntity
 
-PRESS = "press"
+LONG_PRESS = "long_press"
 
 
 async def async_setup_entry(
@@ -22,11 +22,14 @@ async def async_setup_entry(
 
 
 class HolyIotButtonEvent(HolyIotEntity, EventEntity):
-    """Fires `press` when the tag's button is pressed."""
+    """Fires `long_press` when the tag's button is held for about 3 seconds.
+
+    The tags don't report short presses.
+    """
 
     _key = "button"
     _attr_device_class = EventDeviceClass.BUTTON
-    _attr_event_types = [PRESS]
+    _attr_event_types = [LONG_PRESS]
     _attr_translation_key = "button"
 
     async def async_added_to_hass(self) -> None:
@@ -36,5 +39,5 @@ class HolyIotButtonEvent(HolyIotEntity, EventEntity):
 
     @callback
     def _async_press(self) -> None:
-        self._trigger_event(PRESS)
+        self._trigger_event(LONG_PRESS)
         self.async_write_ha_state()

@@ -1,11 +1,11 @@
-"""Unit tests for the tag: battery changes and press detection, without Home Assistant."""
+"""Unit tests for the tag: battery smoothing and press detection, without Home Assistant."""
 
 from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.components.bluetooth import BluetoothScanningMode
 
-from custom_components.holyiot_ble.tag import HolyIotTag
+from custom_components.holyiot_ble.tag import BATTERY_SAMPLES, BATTERY_STEP, HolyIotTag
 
 from .conftest import ADDRESS, PROXY_A, PROXY_B, TITLE, FakeBluetooth, payload, service_info
 
@@ -40,16 +40,41 @@ def test_asks_for_active_scans_of_this_tag(bluetooth: FakeBluetooth, tag: HolyIo
     assert mode is BluetoothScanningMode.ACTIVE
 
 
-def test_battery_change_notifies_once(
+def test_first_reading_sets_the_level(
     tag: HolyIotTag, bluetooth: FakeBluetooth, battery_updates: MagicMock
 ) -> None:
-    bluetooth.deliver(service_info())
-    bluetooth.deliver(service_info())
+    bluetooth.deliver(service_info(payload(battery=79)))
     assert tag.battery == 79
-    assert battery_updates.call_count == 1
+    battery_updates.assert_called_once()
 
-    bluetooth.deliver(service_info(payload(battery=78)))
-    assert tag.battery == 78
+
+def test_level_ignores_jitter_and_a_single_dip(
+    tag: HolyIotTag, bluetooth: FakeBluetooth, battery_updates: MagicMock
+) -> None:
+    for level in (79, 80, 78, 35, 81, 77):
+        bluetooth.deliver(service_info(payload(battery=level)))
+    assert tag.battery == 79
+    battery_updates.assert_called_once()
+
+
+def test_readings_during_a_press_are_skipped(
+    tag: HolyIotTag, bluetooth: FakeBluetooth
+) -> None:
+    """The coin cell sags while the tag reports a press."""
+    bluetooth.deliver(service_info(payload(battery=79)))
+    for _ in range(3):
+        bluetooth.deliver(service_info(payload(battery=36, pressed=True)))
+    assert tag.battery == 79
+
+
+def test_level_follows_a_lasting_drop(
+    tag: HolyIotTag, bluetooth: FakeBluetooth, battery_updates: MagicMock
+) -> None:
+    bluetooth.deliver(service_info(payload(battery=79)))
+    for _ in range(BATTERY_SAMPLES):
+        bluetooth.deliver(service_info(payload(battery=70)))
+    assert tag.battery is not None
+    assert abs(tag.battery - 70) < BATTERY_STEP
     assert battery_updates.call_count == 2
 
 

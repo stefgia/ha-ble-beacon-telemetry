@@ -47,7 +47,7 @@ async def test_button_event(hass: HomeAssistant, bluetooth: FakeBluetooth) -> No
     assert hass.states.get(BUTTON).state == "unknown"
     bluetooth.deliver(service_info(payload()))
     bluetooth.deliver(service_info(payload(pressed=True)))
-    assert hass.states.get(BUTTON).attributes["event_type"] == "press"
+    assert hass.states.get(BUTTON).attributes["event_type"] == "long_press"
 
 
 async def test_linked_to_device_made_by_another_integration(
