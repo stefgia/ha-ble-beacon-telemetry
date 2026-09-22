@@ -9,7 +9,7 @@
         }
       },
       "bluetooth_confirm": {
-        "description": "Add {name}? It gets a battery sensor and a button event."
+        "description": "Add {name}? It gets a battery sensor and a long-press event."
       }
     },
     "abort": {
@@ -25,7 +25,7 @@
         "state_attributes": {
           "event_type": {
             "state": {
-              "press": "Press"
+              "long_press": "Long press"
             }
           }
         }

@@ -1,118 +1,124 @@
-"""Entity tests: battery, button presses and the shared device."""
+"""Unit tests for the tag: battery smoothing and press detection, without Home Assistant."""
 
-import time
+from unittest.mock import MagicMock
 
-from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers import device_registry as dr
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    mock_restore_cache_with_extra_data,
-)
+import pytest
+from homeassistant.components.bluetooth import BluetoothScanningMode
 
-from .conftest import (
-    ADDRESS,
-    PAYLOAD,
-    PAYLOAD_PRESSED,
-    PROXY_A,
-    PROXY_B,
-    inject,
-    service_info,
-    setup_tag,
-)
+from custom_components.holyiot_ble.tag import BATTERY_SAMPLES, BATTERY_STEP, HolyIotTag
 
-BATTERY = "sensor.holyiot_1234_battery"
-BUTTON = "event.holyiot_1234_button"
+from .conftest import ADDRESS, PROXY_A, PROXY_B, TITLE, FakeBluetooth, payload, service_info
 
 
-async def test_battery_from_advert(hass: HomeAssistant) -> None:
-    await setup_tag(hass)
-    inject(hass, service_info())
-    await hass.async_block_till_done()
-    assert hass.states.get(BATTERY).state == "79"
+@pytest.fixture
+def tag(bluetooth: FakeBluetooth) -> HolyIotTag:
+    """A tag that is listening for adverts."""
+    tag = HolyIotTag(MagicMock(), ADDRESS, TITLE)
+    tag.async_start()
+    return tag
 
 
-async def test_advert_already_heard_is_used_at_setup(hass: HomeAssistant) -> None:
-    inject(hass, service_info())
-    await hass.async_block_till_done()
-    await setup_tag(hass)
-    assert hass.states.get(BATTERY).state == "79"
+@pytest.fixture
+def battery_updates(tag: HolyIotTag) -> MagicMock:
+    """A listener for battery changes."""
+    listener = MagicMock()
+    tag.async_on_battery(listener)
+    return listener
 
 
-async def test_battery_restored_after_restart(hass: HomeAssistant) -> None:
-    mock_restore_cache_with_extra_data(
-        hass,
-        [
-            (
-                State(BATTERY, "81"),
-                {"native_value": 81, "native_unit_of_measurement": "%"},
-            )
-        ],
-    )
-    await setup_tag(hass)
-    assert hass.states.get(BATTERY).state == "81"
+@pytest.fixture
+def presses(tag: HolyIotTag) -> MagicMock:
+    """A listener for button presses."""
+    listener = MagicMock()
+    tag.async_on_press(listener)
+    return listener
 
 
-async def test_press_fires_event(hass: HomeAssistant) -> None:
-    await setup_tag(hass)
-    inject(hass, service_info(PAYLOAD))
-    inject(hass, service_info(PAYLOAD_PRESSED))
-    await hass.async_block_till_done()
-    state = hass.states.get(BUTTON)
-    assert state.attributes["event_type"] == "press"
+def test_asks_for_active_scans_of_this_tag(bluetooth: FakeBluetooth, tag: HolyIotTag) -> None:
+    _, _, matcher, mode = bluetooth.register.call_args.args
+    assert matcher == {"address": ADDRESS, "connectable": False}
+    assert mode is BluetoothScanningMode.ACTIVE
 
 
-async def test_stale_press_at_setup_is_ignored(hass: HomeAssistant) -> None:
-    inject(hass, service_info(PAYLOAD_PRESSED))
-    await hass.async_block_till_done()
-    await setup_tag(hass)
-    assert hass.states.get(BUTTON).state == "unknown"
-
-
-async def test_two_proxies_report_one_press(hass: HomeAssistant) -> None:
-    await setup_tag(hass)
-    fired: list[str] = []
-    hass.bus.async_listen("state_changed", lambda e: fired.append(e.data["entity_id"]))
-    inject(hass, service_info(PAYLOAD, source=PROXY_A))
-    await hass.async_block_till_done()
-    inject(hass, service_info(PAYLOAD, source=PROXY_B, rssi=-40))
-    await hass.async_block_till_done()
-    inject(hass, service_info(PAYLOAD_PRESSED, source=PROXY_A, rssi=-40))
-    await hass.async_block_till_done()
-    inject(hass, service_info(PAYLOAD_PRESSED, source=PROXY_B, rssi=-30))
-    await hass.async_block_till_done()
-    assert fired.count(BUTTON) == 1
-
-
-async def test_presses_further_apart_both_count(hass: HomeAssistant) -> None:
-    await setup_tag(hass)
-    fired: list[str] = []
-    hass.bus.async_listen("state_changed", lambda e: fired.append(e.data["entity_id"]))
-    start = time.monotonic()
-    for offset, payload in ((0, PAYLOAD), (1, PAYLOAD_PRESSED), (2, PAYLOAD), (10, PAYLOAD_PRESSED)):
-        info = service_info(payload)
-        info.time = start + offset
-        inject(hass, info)
-        await hass.async_block_till_done()
-    assert fired.count(BUTTON) == 2
-
-
-async def test_linked_to_device_made_by_another_integration(
-    hass: HomeAssistant, device_registry: dr.DeviceRegistry
+def test_first_reading_sets_the_level(
+    tag: HolyIotTag, bluetooth: FakeBluetooth, battery_updates: MagicMock
 ) -> None:
-    other = MockConfigEntry(domain="bermuda")
-    other.add_to_hass(hass)
-    existing = device_registry.async_get_or_create(
-        config_entry_id=other.entry_id,
-        connections={(dr.CONNECTION_BLUETOOTH, ADDRESS)},
-        identifiers={("bermuda", ADDRESS.lower())},
-        name="Holy-IOT-S",
-    )
-    entry = await setup_tag(hass)
-    [ours] = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
-    linked = device_registry.async_get_devices(connections=ours.connections)
-    assert {device.id for device in linked} == {ours.id, existing.id}
+    bluetooth.deliver(service_info(payload(battery=79)))
+    assert tag.battery == 79
+    battery_updates.assert_called_once()
 
 
-async def test_unload(hass: HomeAssistant) -> None:
-    entry = await setup_tag(hass)
-    assert await hass.config_entries.async_unload(entry.entry_id)
+def test_level_ignores_jitter_and_a_single_dip(
+    tag: HolyIotTag, bluetooth: FakeBluetooth, battery_updates: MagicMock
+) -> None:
+    for level in (79, 80, 78, 35, 81, 77):
+        bluetooth.deliver(service_info(payload(battery=level)))
+    assert tag.battery == 79
+    battery_updates.assert_called_once()
+
+
+def test_readings_during_a_press_are_skipped(
+    tag: HolyIotTag, bluetooth: FakeBluetooth
+) -> None:
+    """The coin cell sags while the tag reports a press."""
+    bluetooth.deliver(service_info(payload(battery=79)))
+    for _ in range(3):
+        bluetooth.deliver(service_info(payload(battery=36, pressed=True)))
+    assert tag.battery == 79
+
+
+def test_level_follows_a_lasting_drop(
+    tag: HolyIotTag, bluetooth: FakeBluetooth, battery_updates: MagicMock
+) -> None:
+    bluetooth.deliver(service_info(payload(battery=79)))
+    for _ in range(BATTERY_SAMPLES):
+        bluetooth.deliver(service_info(payload(battery=70)))
+    assert tag.battery is not None
+    assert abs(tag.battery - 70) < BATTERY_STEP
+    assert battery_updates.call_count == 2
+
+
+def test_ignores_other_data(
+    tag: HolyIotTag, bluetooth: FakeBluetooth, battery_updates: MagicMock
+) -> None:
+    bluetooth.deliver(service_info(b"\x41\x4f"))
+    assert tag.battery is None
+    battery_updates.assert_not_called()
+
+
+def test_press(bluetooth: FakeBluetooth, presses: MagicMock) -> None:
+    bluetooth.deliver(service_info(payload()))
+    bluetooth.deliver(service_info(payload(pressed=True)))
+    assert presses.call_count == 1
+
+
+def test_first_report_of_a_press_is_ignored(bluetooth: FakeBluetooth, presses: MagicMock) -> None:
+    """A proxy's first report can be a press that's long over."""
+    bluetooth.deliver(service_info(payload(pressed=True)))
+    presses.assert_not_called()
+
+
+def test_still_pressed_is_not_a_new_press(bluetooth: FakeBluetooth, presses: MagicMock) -> None:
+    for pressed in (False, True, True):
+        bluetooth.deliver(service_info(payload(pressed=pressed)))
+    assert presses.call_count == 1
+
+
+@pytest.mark.parametrize(
+    ("seconds_apart", "expected"), [(1, 1), (10, 2)], ids=["same press", "two presses"]
+)
+def test_press_heard_by_two_proxies(
+    bluetooth: FakeBluetooth, presses: MagicMock, seconds_apart: float, expected: int
+) -> None:
+    bluetooth.deliver(service_info(payload(), source=PROXY_A, at=0))
+    bluetooth.deliver(service_info(payload(), source=PROXY_B, at=0))
+    bluetooth.deliver(service_info(payload(pressed=True), source=PROXY_A, at=1))
+    bluetooth.deliver(service_info(payload(pressed=True), source=PROXY_B, at=1 + seconds_apart))
+    assert presses.call_count == expected
+
+
+def test_unsubscribed_listener_is_not_called(tag: HolyIotTag, bluetooth: FakeBluetooth) -> None:
+    listener = MagicMock()
+    tag.async_on_battery(listener)()
+    bluetooth.deliver(service_info())
+    listener.assert_not_called()

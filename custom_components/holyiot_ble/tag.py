@@ -1,8 +1,10 @@
-"""Follow one tag's adverts and turn them into a battery level and button presses."""
+"""Follow one tag's adverts and turn them into a battery level and long presses."""
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Callable
+from statistics import median
 
 from homeassistant.components.bluetooth import (
     BluetoothCallbackMatcher,
@@ -13,11 +15,19 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 
-from .parser import parse_service_info
+from .parser import HolyIotReading, parse_service_info
 
 # Two proxies can report the same press a moment apart. Presses closer together
 # than this count once.
 PRESS_DEDUP_SECONDS = 3.0
+
+# Battery readings jump by a few percent between adverts. The reported level is
+# the median of the last BATTERY_SAMPLES readings, and it only moves once that
+# median is BATTERY_STEP or more away from it.
+BATTERY_SAMPLES = 10
+BATTERY_STEP = 5
+
+type Listener = Callable[[], None]
 
 
 class HolyIotTag:
@@ -28,9 +38,11 @@ class HolyIotTag:
         self.hass = hass
         self.address = address
         self.name = name
+        # The smoothed level, not the last reading.
         self.battery: int | None = None
-        self._listeners: list[Callable[[], None]] = []
-        self._press_listeners: list[Callable[[], None]] = []
+        self._battery_readings: deque[int] = deque(maxlen=BATTERY_SAMPLES)
+        self._battery_listeners: list[Listener] = []
+        self._press_listeners: list[Listener] = []
         # Each proxy keeps its own copy of the tag's last scan response, so a
         # press is a change from released to pressed as seen by one proxy.
         self._pressed_by_source: dict[str, bool] = {}
@@ -52,41 +64,60 @@ class HolyIotTag:
         )
 
     @callback
-    def async_add_listener(self, update: Callable[[], None]) -> CALLBACK_TYPE:
-        """Call `update` when the battery level changes."""
-        self._listeners.append(update)
-        return lambda: self._listeners.remove(update)
+    def async_on_battery(self, listener: Listener) -> CALLBACK_TYPE:
+        """Call `listener` when the battery level changes."""
+        return _subscribe(self._battery_listeners, listener)
 
     @callback
-    def async_add_press_listener(self, press: Callable[[], None]) -> CALLBACK_TYPE:
-        """Call `press` on each button press."""
-        self._press_listeners.append(press)
-        return lambda: self._press_listeners.remove(press)
+    def async_on_press(self, listener: Listener) -> CALLBACK_TYPE:
+        """Call `listener` on each long press of the button."""
+        return _subscribe(self._press_listeners, listener)
 
     @callback
     def _async_on_advert(
         self, service_info: BluetoothServiceInfoBleak, change: BluetoothChange
     ) -> None:
-        reading = parse_service_info(service_info)
-        if reading is None:
+        if (reading := parse_service_info(service_info)) is None:
             return
-        if reading.battery != self.battery:
-            self.battery = reading.battery
-            for update in list(self._listeners):
-                update()
-        if reading.pressed is None:
-            return
-        was_pressed = self._pressed_by_source.get(service_info.source)
-        self._pressed_by_source[service_info.source] = reading.pressed
+        if self._update_battery(reading):
+            _notify(self._battery_listeners)
+        if reading.pressed is not None and self._is_new_press(
+            service_info.source, reading.pressed, service_info.time
+        ):
+            _notify(self._press_listeners)
+
+    def _update_battery(self, reading: HolyIotReading) -> bool:
+        """Take in a reading and say whether the reported level changed."""
+        # The coin cell sags while the tag reports a press, so skip those.
+        if reading.pressed:
+            return False
+        self._battery_readings.append(reading.battery)
+        level = round(median(self._battery_readings))
+        if self.battery is not None and abs(level - self.battery) < BATTERY_STEP:
+            return False
+        self.battery = level
+        return True
+
+    def _is_new_press(self, source: str, pressed: bool, time: float) -> bool:
+        """Record what `source` reports and say whether it's a press to announce."""
+        was_pressed = self._pressed_by_source.get(source)
+        self._pressed_by_source[source] = pressed
         # A proxy's first report can be a press that's long over, so only a
         # change it has seen happen counts.
-        if not reading.pressed or was_pressed is not False:
-            return
-        if (
-            self._last_press is not None
-            and service_info.time - self._last_press < PRESS_DEDUP_SECONDS
-        ):
-            return
-        self._last_press = service_info.time
-        for press in list(self._press_listeners):
-            press()
+        if not pressed or was_pressed is not False:
+            return False
+        if self._last_press is not None and time - self._last_press < PRESS_DEDUP_SECONDS:
+            return False
+        self._last_press = time
+        return True
+
+
+def _subscribe(listeners: list[Listener], listener: Listener) -> CALLBACK_TYPE:
+    listeners.append(listener)
+    return lambda: listeners.remove(listener)
+
+
+def _notify(listeners: list[Listener]) -> None:
+    # Copy, so a listener can unsubscribe while being called.
+    for listener in list(listeners):
+        listener()

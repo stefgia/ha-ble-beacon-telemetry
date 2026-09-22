@@ -7,7 +7,8 @@ The payload is 13 bytes:
     2-7    the tag's own MAC, most significant byte first
     8-9    unknown
     10     measurement type: 6 is a button, others are sensors this doesn't read
-    11     button state: 1 while pressed, 0 otherwise
+    11     1 for a few seconds after a long press (about 5 s), else 0.
+           Short presses don't set it.
     12     unused by the button
 
 Tags send it only in the scan response, so a proxy has to scan actively to hear it.
@@ -49,7 +50,6 @@ def parse_payload(address: str, payload: bytes) -> HolyIotReading | None:
 
 def parse_service_info(service_info: BluetoothServiceInfoBleak) -> HolyIotReading | None:
     """Decode the HolyIOT data in an advert, if it has any."""
-    payload = service_info.service_data.get(SERVICE_UUID)
-    if payload is None:
+    if (payload := service_info.service_data.get(SERVICE_UUID)) is None:
         return None
     return parse_payload(service_info.address, payload)
