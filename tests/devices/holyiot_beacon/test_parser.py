@@ -2,11 +2,15 @@
 
 import pytest
 
-from custom_components.holyiot_ble.parser import HolyIotReading, parse_payload
+from custom_components.holyiot_ble.devices.holyiot_beacon.parser import (
+    HolyIotReading,
+    parse_payload,
+)
 
-from .conftest import ADDRESS, PAYLOAD, payload
+from ...conftest import ADDRESS, TEST_ADDRESSES
+from .samples import PAYLOAD, payload
 
-OTHER_ADDRESS = "D0:0D:00:AB:CD:EF"
+OTHER_ADDRESS = TEST_ADDRESSES[1]
 
 
 @pytest.mark.parametrize(
@@ -19,8 +23,8 @@ OTHER_ADDRESS = "D0:0D:00:AB:CD:EF"
             bytes.fromhex("415ed00d00abcdef0306060000"),
             HolyIotReading(battery=94, pressed=False),
         ),
-        # A temperature reading still carries the battery, but no button.
-        (ADDRESS, PAYLOAD[:10] + bytes([1, 21, 50]), HolyIotReading(battery=79, pressed=None)),
+        # A temperature frame still carries the battery, but no button.
+        (ADDRESS, payload(measurement=1), HolyIotReading(battery=79, pressed=None)),
     ],
     ids=["released", "pressed", "other tag", "not a button"],
 )

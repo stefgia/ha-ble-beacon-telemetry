@@ -1,4 +1,4 @@
-"""Shared test data, and a stand-in for Home Assistant's Bluetooth subscription."""
+"""Shared test helpers: fake adverts and a stand-in for HA's Bluetooth subscription."""
 
 from __future__ import annotations
 
@@ -10,35 +10,32 @@ import pytest
 from bleak.backends.device import BLEDevice
 from homeassistant.components.bluetooth import BluetoothChange, BluetoothServiceInfoBleak
 
-from custom_components.holyiot_ble.const import SERVICE_UUID
-
-ADDRESS = "C0:FF:EE:00:12:34"
-TITLE = "HolyIOT 1234"
+# Tests and samples use only these MACs, never a real device's.
+TEST_ADDRESSES = ("C0:FF:EE:00:12:34", "D0:0D:00:AB:CD:EF")
+ADDRESS = TEST_ADDRESSES[0]
 PROXY_A = "AA:00:00:00:00:01"
 PROXY_B = "AA:00:00:00:00:02"
-# 79 % battery, button type, not pressed.
-PAYLOAD = bytes.fromhex("414fc0ffee0012340206060000")
-IBEACON = bytes.fromhex("0215fda50693a4e24fb1afcfc6eb07647825271b4cb9c9")
 
 
-def payload(*, battery: int = 79, pressed: bool = False) -> bytes:
-    """PAYLOAD with another battery level or button state."""
-    return PAYLOAD[:1] + bytes([battery]) + PAYLOAD[2:11] + bytes([pressed]) + PAYLOAD[12:]
-
-
-def service_info(
-    data: bytes = PAYLOAD, *, source: str = PROXY_A, at: float | None = None
+def advert(
+    *,
+    address: str = ADDRESS,
+    name: str | None = None,
+    service_data: dict[str, bytes] | None = None,
+    manufacturer_data: dict[int, bytes] | None = None,
+    source: str = PROXY_A,
+    at: float | None = None,
 ) -> BluetoothServiceInfoBleak:
-    """An advert from the tag as a proxy passes it on, heard `at` now by default."""
+    """An advert as a proxy passes it on, heard `at` now by default."""
     return BluetoothServiceInfoBleak(
-        name="Holy-IOT-S",
-        address=ADDRESS,
+        name=name or "",
+        address=address,
         rssi=-60,
-        manufacturer_data={76: IBEACON},
-        service_data={SERVICE_UUID: data},
+        manufacturer_data=manufacturer_data or {},
+        service_data=service_data or {},
         service_uuids=[],
         source=source,
-        device=BLEDevice(ADDRESS, "Holy-IOT-S", None),
+        device=BLEDevice(address, name, None),
         advertisement=None,
         connectable=False,
         time=time.monotonic() if at is None else at,
