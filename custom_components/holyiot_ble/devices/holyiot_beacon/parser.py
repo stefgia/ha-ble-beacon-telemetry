@@ -12,6 +12,7 @@ The payload is 13 bytes:
     12     unused by the button
 
 Tags send it only in the scan response, so a proxy has to scan actively to hear it.
+See README.md in this folder for how the tag behaves.
 """
 
 from __future__ import annotations
@@ -20,8 +21,8 @@ from dataclasses import dataclass
 
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
-from .const import SERVICE_UUID
 
+SERVICE_UUID = "00005242-0000-1000-8000-00805f9b34fb"
 PAYLOAD_LENGTH = 13
 MEASUREMENT_BUTTON = 6
 

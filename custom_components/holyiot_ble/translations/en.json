@@ -9,13 +9,13 @@
         }
       },
       "bluetooth_confirm": {
-        "description": "Add {name}? It gets a battery sensor and a long-press event."
+        "description": "Add {name}?"
       }
     },
     "abort": {
       "already_configured": "This tag is already set up.",
-      "no_devices_found": "No HolyIOT tags heard yet. Their battery data arrives only while a Bluetooth proxy scans actively, so this can take a few minutes.",
-      "not_supported": "This device sends HolyIOT data in a format this integration doesn't read."
+      "no_devices_found": "No supported HolyIOT tags heard yet. Some tags only send their data while a Bluetooth proxy scans actively, so this can take a few minutes.",
+      "not_supported": "This device sends data in a format this integration doesn't read yet."
     }
   },
   "entity": {

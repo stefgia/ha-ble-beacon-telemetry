@@ -2,4 +2,5 @@
 
 DOMAIN = "holyiot_ble"
 
-SERVICE_UUID = "00005242-0000-1000-8000-00805f9b34fb"
+# Config entry data: the id of the tag's device model (see devices/).
+CONF_DEVICE = "device"
