@@ -7,7 +7,7 @@ The payload is 13 bytes:
     2-7    the tag's own MAC, most significant byte first
     8-9    unknown
     10     measurement type: 6 is a button, others are sensors this doesn't read
-    11     1 for a few seconds after a long press (about 3 s), else 0.
+    11     1 for a few seconds after a long press (about 5 s), else 0.
            Short presses don't set it.
     12     unused by the button
 

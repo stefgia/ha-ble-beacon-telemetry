@@ -34,7 +34,7 @@ Each tag becomes a device with two entities:
 | Entity | What it does |
 | --- | --- |
 | Battery | The battery level in percent. It changes in steps of 5 % or more, so the tag's small jumps between readings don't show. It keeps the last level while the tag is out of range, and after a restart. |
-| Button | Fires a `long_press` event when you hold the button for about 3 seconds. |
+| Button | Fires a `long_press` event when you hold the button for about 5 seconds. |
 
 The tags don't report short presses, only a long press. After one, wait a few seconds before the next, or the two can count as one.
 

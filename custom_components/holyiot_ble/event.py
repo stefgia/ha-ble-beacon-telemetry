@@ -22,7 +22,7 @@ async def async_setup_entry(
 
 
 class HolyIotButtonEvent(HolyIotEntity, EventEntity):
-    """Fires `long_press` when the tag's button is held for about 3 seconds.
+    """Fires `long_press` when the tag's button is held for about 5 seconds.
 
     The tags don't report short presses.
     """
