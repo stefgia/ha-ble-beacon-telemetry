@@ -43,10 +43,10 @@ class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
         if (device := find_device(discovery_info)) is None:
+            # No broadcast name: it can be personal, and this log goes into pull requests.
             _LOGGER.debug(
-                "No supported model for %s (%s): service data %s, manufacturer data %s",
+                "No supported model for %s: service data %s, manufacturer data %s",
                 discovery_info.address,
-                discovery_info.name,
                 {uuid: data.hex() for uuid, data in discovery_info.service_data.items()},
                 {mfr: data.hex() for mfr, data in discovery_info.manufacturer_data.items()},
             )

@@ -23,7 +23,12 @@ from ..conftest import TEST_ADDRESSES
 
 INTEGRATION = Path(__file__).parents[2] / "custom_components" / "holyiot_ble"
 MANIFEST = json.loads((INTEGRATION / "manifest.json").read_text())
-STRINGS = json.loads((INTEGRATION / "strings.json").read_text())
+# The names must be in both: strings.json is the source, translations/en.json
+# is what Home Assistant loads for English.
+NAME_FILES = {
+    path: json.loads((INTEGRATION / path).read_text())
+    for path in ("strings.json", "translations/en.json")
+}
 MAC = re.compile(r"(?:[0-9A-F]{2}:){5}[0-9A-F]{2}", re.IGNORECASE)
 
 pytestmark = pytest.mark.parametrize("device", DEVICES, ids=[device.id for device in DEVICES])
@@ -61,22 +66,23 @@ def test_entity_keys_are_unique(device: Device) -> None:
     assert len(keys) == len(set(keys))
 
 
-def test_every_entity_has_a_name(device: Device) -> None:
-    """A name comes from strings.json, the description's name, or its device class."""
+@pytest.mark.parametrize("path", NAME_FILES)
+def test_every_entity_has_a_name(device: Device, path: str) -> None:
+    """A name comes from the name files, the description's name, or its device class."""
     for platform, description in descriptions(device):
         if description.translation_key:
-            assert description.translation_key in STRINGS["entity"][platform]
+            assert description.translation_key in NAME_FILES[path]["entity"][platform]
         else:
             assert description.name or description.device_class, description.key
 
 
-def test_every_event_type_has_a_name(device: Device) -> None:
+@pytest.mark.parametrize("path", NAME_FILES)
+def test_every_event_type_has_a_name(device: Device, path: str) -> None:
     for description in device.events:
         if description.translation_key is None:
             continue
-        names = STRINGS["entity"]["event"][description.translation_key]["state_attributes"][
-            "event_type"
-        ]["state"]
+        entity = NAME_FILES[path]["entity"]["event"][description.translation_key]
+        names = entity["state_attributes"]["event_type"]["state"]
         for event_type in description.event_types:
             assert event_type in names
 
