@@ -1,0 +1,35 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "description": "Choose a HolyIOT tag that Home Assistant has heard over Bluetooth.",
+        "data": {
+          "address": "Tag"
+        }
+      },
+      "bluetooth_confirm": {
+        "description": "Add {name}? It gets a battery sensor and a button event."
+      }
+    },
+    "abort": {
+      "already_configured": "This tag is already set up.",
+      "no_devices_found": "No HolyIOT tags heard yet. Their battery data arrives only while a Bluetooth proxy scans actively, so this can take a few minutes.",
+      "not_supported": "This device sends HolyIOT data in a format this integration doesn't read."
+    }
+  },
+  "entity": {
+    "event": {
+      "button": {
+        "name": "Button",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "press": "Press"
+            }
+          }
+        }
+      }
+    }
+  }
+}
