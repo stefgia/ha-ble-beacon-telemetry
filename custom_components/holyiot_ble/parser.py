@@ -49,7 +49,6 @@ def parse_payload(address: str, payload: bytes) -> HolyIotReading | None:
 
 def parse_service_info(service_info: BluetoothServiceInfoBleak) -> HolyIotReading | None:
     """Decode the HolyIOT data in an advert, if it has any."""
-    payload = service_info.service_data.get(SERVICE_UUID)
-    if payload is None:
+    if (payload := service_info.service_data.get(SERVICE_UUID)) is None:
         return None
     return parse_payload(service_info.address, payload)

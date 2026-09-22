@@ -1,38 +1,42 @@
 """Parser tests."""
 
+import pytest
+
 from custom_components.holyiot_ble.parser import HolyIotReading, parse_payload
 
-from .conftest import ADDRESS, PAYLOAD, PAYLOAD_PRESSED
+from .conftest import ADDRESS, PAYLOAD, payload
+
+OTHER_ADDRESS = "D0:0D:00:AB:CD:EF"
 
 
-def test_battery_and_released_button() -> None:
-    assert parse_payload(ADDRESS, PAYLOAD) == HolyIotReading(battery=79, pressed=False)
+@pytest.mark.parametrize(
+    ("address", "data", "expected"),
+    [
+        (ADDRESS, PAYLOAD, HolyIotReading(battery=79, pressed=False)),
+        (ADDRESS, payload(pressed=True), HolyIotReading(battery=79, pressed=True)),
+        (
+            OTHER_ADDRESS,
+            bytes.fromhex("415ed00d00abcdef0306060000"),
+            HolyIotReading(battery=94, pressed=False),
+        ),
+        # A temperature reading still carries the battery, but no button.
+        (ADDRESS, PAYLOAD[:10] + bytes([1, 21, 50]), HolyIotReading(battery=79, pressed=None)),
+    ],
+    ids=["released", "pressed", "other tag", "not a button"],
+)
+def test_reads(address: str, data: bytes, expected: HolyIotReading) -> None:
+    assert parse_payload(address, data) == expected
 
 
-def test_pressed_button() -> None:
-    assert parse_payload(ADDRESS, PAYLOAD_PRESSED) == HolyIotReading(battery=79, pressed=True)
-
-
-def test_second_tag() -> None:
-    payload = bytes.fromhex("415ed00d00abcdef0306060000")
-    assert parse_payload("D0:0D:00:AB:CD:EF", payload) == HolyIotReading(
-        battery=94, pressed=False
-    )
-
-
-def test_other_measurement_has_no_button() -> None:
-    temperature = PAYLOAD[:10] + bytes([1, 21, 50])
-    assert parse_payload(ADDRESS, temperature) == HolyIotReading(battery=79, pressed=None)
-
-
-def test_rejects_payload_for_another_mac() -> None:
-    assert parse_payload("D0:0D:00:AB:CD:EF", PAYLOAD) is None
-
-
-def test_rejects_wrong_length() -> None:
-    assert parse_payload(ADDRESS, PAYLOAD[:12]) is None
-    assert parse_payload(ADDRESS, PAYLOAD + b"\x00") is None
-
-
-def test_rejects_impossible_battery() -> None:
-    assert parse_payload(ADDRESS, PAYLOAD[:1] + bytes([200]) + PAYLOAD[2:]) is None
+@pytest.mark.parametrize(
+    ("address", "data"),
+    [
+        (OTHER_ADDRESS, PAYLOAD),
+        (ADDRESS, PAYLOAD[:12]),
+        (ADDRESS, PAYLOAD + b"\x00"),
+        (ADDRESS, payload(battery=200)),
+    ],
+    ids=["another tag's MAC", "too short", "too long", "battery over 100"],
+)
+def test_rejects(address: str, data: bytes) -> None:
+    assert parse_payload(address, data) is None

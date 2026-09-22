@@ -62,6 +62,21 @@ The battery and button data only reach Home Assistant while a Bluetooth adapter 
 
 On Auto, the integration asks the proxy to scan actively for 10 seconds every 5 minutes for each tag. That's enough for the battery. If you use the button, set at least one proxy near the tag to Active. For an ESPHome proxy, the scanning mode is in the ESPHome integration's options.
 
+## Uninstalling
+
+Remove the tags first, then the integration. Removing the integration first leaves its tags behind as broken entries.
+
+1. Delete or change any automations that use a tag's Button or Battery entity.
+2. Go to **Settings > Devices & services > HolyIOT BLE**. For each tag, open its menu (⋮) and choose **Delete**. Home Assistant removes the tag's device and entities with it. A linked device from another integration, such as Bermuda, stays.
+3. Remove the integration:
+   - **HACS:** open **HACS**, find **HolyIOT BLE**, open its menu (⋮) and choose **Remove**.
+   - **Without HACS:** delete the `custom_components/holyiot_ble` folder from your config folder.
+4. Restart Home Assistant.
+
+If you ignored a discovered tag instead of adding it, it stays in the list of ignored devices. Go to **Settings > Devices & services**, select **Ignored** in the filters, and choose **Stop ignoring** on the tag.
+
+If you set a proxy to Active scanning only for the button, you can set it back to Auto.
+
 ## Development
 
 ```bash

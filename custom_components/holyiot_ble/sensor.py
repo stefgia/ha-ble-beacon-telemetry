@@ -21,7 +21,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add the tag's battery sensor."""
-    async_add_entities([HolyIotBatterySensor(entry.runtime_data, "battery")])
+    async_add_entities([HolyIotBatterySensor(entry.runtime_data)])
 
 
 class HolyIotBatterySensor(HolyIotEntity, RestoreSensor):
@@ -31,6 +31,7 @@ class HolyIotBatterySensor(HolyIotEntity, RestoreSensor):
     unavailable: the battery hasn't changed just because nobody can hear it.
     """
 
+    _key = "battery"
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = PERCENTAGE
@@ -41,7 +42,7 @@ class HolyIotBatterySensor(HolyIotEntity, RestoreSensor):
         await super().async_added_to_hass()
         if (last := await self.async_get_last_sensor_data()) is not None:
             self._attr_native_value = last.native_value
-        self.async_on_remove(self.tag.async_add_listener(self._async_update))
+        self.async_on_remove(self.tag.async_on_battery(self._async_update))
 
     @callback
     def _async_update(self) -> None:

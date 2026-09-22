@@ -16,9 +16,9 @@ from .const import DOMAIN
 from .parser import parse_service_info
 
 
-def tag_title(service_info: BluetoothServiceInfoBleak) -> str:
+def tag_title(address: str) -> str:
     """Name a tag after the last four hex digits of its MAC, e.g. "HolyIOT 1234"."""
-    return f"HolyIOT {service_info.address.replace(':', '')[-4:]}"
+    return f"HolyIOT {address.replace(':', '')[-4:]}"
 
 
 class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -28,7 +28,8 @@ class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Set up the flow's state."""
-        self._discovery: BluetoothServiceInfoBleak | None = None
+        self._discovered_title: str | None = None
+        # Tags offered in the user step: address -> title.
         self._candidates: dict[str, str] = {}
 
     async def async_step_bluetooth(
@@ -39,16 +40,16 @@ class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         if parse_service_info(discovery_info) is None:
             return self.async_abort(reason="not_supported")
-        self._discovery = discovery_info
-        self.context["title_placeholders"] = {"name": tag_title(discovery_info)}
+        self._discovered_title = tag_title(discovery_info.address)
+        self.context["title_placeholders"] = {"name": self._discovered_title}
         return await self.async_step_bluetooth_confirm()
 
     async def async_step_bluetooth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Ask before adding a discovered tag."""
-        assert self._discovery is not None
-        title = tag_title(self._discovery)
+        title = self._discovered_title
+        assert title is not None
         if user_input is not None:
             return self.async_create_entry(title=title, data={})
         self._set_confirm_only()
@@ -67,12 +68,11 @@ class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(title=self._candidates[address], data={})
 
         configured = self._async_current_ids(include_ignore=False)
-        for service_info in async_discovered_service_info(self.hass, connectable=False):
-            address = service_info.address
-            if address in configured or address in self._candidates:
-                continue
-            if parse_service_info(service_info) is not None:
-                self._candidates[address] = tag_title(service_info)
+        self._candidates = {
+            info.address: tag_title(info.address)
+            for info in async_discovered_service_info(self.hass, connectable=False)
+            if info.address not in configured and parse_service_info(info) is not None
+        }
         if not self._candidates:
             return self.async_abort(reason="no_devices_found")
 
