@@ -8,6 +8,8 @@ on:
 jobs:
   hacs:
     name: HACS
+    # HACS can't read a private repo's files, so this only passes once it's public.
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
