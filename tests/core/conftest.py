@@ -14,5 +14,5 @@ from .fake_device import FakeDevice
 def fake_device() -> Generator[FakeDevice]:
     """Make the fake model the only supported one."""
     device = FakeDevice()
-    with patch("custom_components.holyiot_ble.devices.DEVICES", (device,)):
+    with patch("custom_components.ble_beacon_telemetry.devices.DEVICES", (device,)):
         yield device

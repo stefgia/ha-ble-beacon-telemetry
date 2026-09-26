@@ -1,4 +1,4 @@
-# HolyIOT Beacon
+# HolyIOT Button Tag
 
 The HolyIOT nRF52810 button tag: a small coin-cell (CR2032) tag with one button, sold as a key finder or presence beacon. It advertises as `Holy-IOT` or `Holy-IOT-S`.
 

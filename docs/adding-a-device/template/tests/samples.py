@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
-from custom_components.holyiot_ble.devices.my_device.parser import SERVICE_UUID  # TODO
+from custom_components.ble_beacon_telemetry.devices.my_device.parser import SERVICE_UUID  # TODO
 
 from ...conftest import ADDRESS, PROXY_A, advert
 

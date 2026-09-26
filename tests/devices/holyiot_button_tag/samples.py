@@ -1,4 +1,4 @@
-"""Sample adverts from a HolyIOT Beacon, captured from real tags with the MAC replaced.
+"""Sample adverts from a HolyIOT Button Tag, captured from real tags with the MAC replaced.
 
 The contract test (tests/devices/test_contract.py) checks every device has a
 samples.py with an ADVERTS list the device claims and its tracker can read.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
-from custom_components.holyiot_ble.devices.holyiot_beacon.parser import SERVICE_UUID
+from custom_components.ble_beacon_telemetry.devices.holyiot_button_tag.parser import SERVICE_UUID
 
 from ...conftest import ADDRESS, PROXY_A, advert
 
@@ -29,7 +29,7 @@ def payload(*, battery: int = 79, pressed: bool = False, measurement: int = 6) -
     )
 
 
-def beacon_advert(
+def button_tag_advert(
     data: bytes = PAYLOAD, *, source: str = PROXY_A, at: float | None = None
 ) -> BluetoothServiceInfoBleak:
     """A scan response from the tag, as a proxy passes it on."""
@@ -43,4 +43,4 @@ def beacon_advert(
     )
 
 
-ADVERTS = [beacon_advert(), beacon_advert(payload(pressed=True))]
+ADVERTS = [button_tag_advert(), button_tag_advert(payload(pressed=True))]

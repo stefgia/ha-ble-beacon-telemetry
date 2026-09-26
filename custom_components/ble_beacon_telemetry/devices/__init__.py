@@ -8,9 +8,9 @@ from __future__ import annotations
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
 from ..device import Device
-from .holyiot_beacon import HolyIotBeacon
+from .holyiot_button_tag import HolyIotButtonTag
 
-DEVICES: tuple[Device, ...] = (HolyIotBeacon(),)
+DEVICES: tuple[Device, ...] = (HolyIotButtonTag(),)
 
 
 def get_device(device_id: str) -> Device | None:

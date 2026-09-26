@@ -57,7 +57,7 @@ class FakeBluetooth:
         return lambda: self.callbacks.remove(callback)
 
     def deliver(self, info: BluetoothServiceInfoBleak) -> None:
-        """Hand an advert to every tag that has subscribed, as HA would."""
+        """Hand an advert to every beacon that has subscribed, as HA would."""
         for callback in list(self.callbacks):
             callback(info, BluetoothChange.ADVERTISEMENT)
 
@@ -65,5 +65,5 @@ class FakeBluetooth:
 @pytest.fixture
 def bluetooth() -> Generator[FakeBluetooth]:
     """Replace HA's Bluetooth subscription, so no Bluetooth manager is needed."""
-    with patch("custom_components.holyiot_ble.tag.async_register_callback") as register:
+    with patch("custom_components.ble_beacon_telemetry.beacon.async_register_callback") as register:
         yield FakeBluetooth(register)

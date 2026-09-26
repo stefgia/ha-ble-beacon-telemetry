@@ -3,9 +3,9 @@
     "flow_title": "{name}",
     "step": {
       "user": {
-        "description": "Choose a HolyIOT tag that Home Assistant has heard over Bluetooth.",
+        "description": "Choose a Bluetooth beacon that Home Assistant has heard.",
         "data": {
-          "address": "Tag"
+          "address": "Beacon"
         }
       },
       "bluetooth_confirm": {
@@ -13,8 +13,8 @@
       }
     },
     "abort": {
-      "already_configured": "This tag is already set up.",
-      "no_devices_found": "No supported HolyIOT tags heard yet. Some tags only send their data while a Bluetooth proxy scans actively, so this can take a few minutes.",
+      "already_configured": "This beacon is already set up.",
+      "no_devices_found": "No supported beacons heard yet. Some beacons only send their data while a Bluetooth proxy scans actively, so this can take a few minutes.",
       "not_supported": "This device sends data in a format this integration doesn't read yet."
     }
   },

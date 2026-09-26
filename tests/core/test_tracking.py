@@ -2,7 +2,7 @@
 
 import pytest
 
-from custom_components.holyiot_ble.tracking import LatchedPress, SmoothedLevel
+from custom_components.ble_beacon_telemetry.tracking import LatchedPress, SmoothedLevel
 
 from ..conftest import PROXY_A, PROXY_B
 

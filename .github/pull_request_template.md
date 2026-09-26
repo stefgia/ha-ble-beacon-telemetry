@@ -49,7 +49,7 @@ paste the pytest summary line
 
 ## Checklist
 
-- [ ] Device code is in `custom_components/holyiot_ble/devices/<device_id>/` and its tests in `tests/devices/<device_id>/`.
+- [ ] Device code is in `custom_components/ble_beacon_telemetry/devices/<device_id>/` and its tests in `tests/devices/<device_id>/`.
 - [ ] The device has a README, and a row in the main README's "Supported devices" table.
 - [ ] Discovery filters are in `manifest.json`; entity and event names are in `strings.json` and `translations/en.json`.
 - [ ] Samples come from real captures, with MACs replaced by test MACs (payloads included).

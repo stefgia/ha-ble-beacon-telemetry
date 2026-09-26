@@ -10,7 +10,7 @@ from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 from homeassistant.components.event import EventEntityDescription
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription
 
-from custom_components.holyiot_ble.device import Device, Tracker, Update
+from custom_components.ble_beacon_telemetry.device import Device, Tracker, Update
 
 from ..conftest import advert
 
@@ -18,7 +18,7 @@ FAKE_UUID = "0000feed-0000-1000-8000-00805f9b34fb"
 
 
 def fake_advert(level: int = 50, ping: bool = False, **kwargs) -> BluetoothServiceInfoBleak:
-    """An advert from a fake tag."""
+    """An advert from a fake beacon."""
     return advert(service_data={FAKE_UUID: bytes([level, ping])}, **kwargs)
 
 
@@ -49,5 +49,5 @@ class FakeDevice(Device):
         return FAKE_UUID in service_info.service_data
 
     def create_tracker(self) -> Tracker:
-        """Return a new tracker for one tag."""
+        """Return a new tracker for one beacon."""
         return FakeTracker()

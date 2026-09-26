@@ -1,4 +1,4 @@
-# HolyIOT My Device
+# Maker Model
 
 One paragraph: what the device is, what it looks like, how it's sold, and the name it advertises.
 

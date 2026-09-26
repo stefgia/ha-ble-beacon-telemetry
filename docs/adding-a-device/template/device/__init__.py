@@ -1,6 +1,6 @@
 """DEVICE NAME: one line on what it is. See README.md in this folder."""
 
-# Copy this folder to custom_components/holyiot_ble/devices/<device_id>/ and
+# Copy this folder to custom_components/ble_beacon_telemetry/devices/<device_id>/ and
 # replace every TODO. Keep device-specific code in this folder only.
 
 from __future__ import annotations
@@ -22,7 +22,8 @@ class MyDevice(Device):  # TODO: name the class after the model
     """TODO: the model, in one line."""
 
     id = "my_device"  # TODO: the same as the folder name; never change it once released
-    name = "HolyIOT My Device"  # TODO: the model name shown in Home Assistant
+    name = "Maker Model"  # TODO: the model name shown in Home Assistant
+    manufacturer = "Maker"  # TODO: the maker shown in Home Assistant
     # TODO: how Home Assistant finds it. Add the same filter to manifest.json.
     discovery = ({"connectable": False, "service_data_uuid": SERVICE_UUID},)
     # TODO: False if all the data is in the advert itself, not the scan response.
@@ -49,7 +50,7 @@ class MyDevice(Device):  # TODO: name the class after the model
         return parse_service_info(service_info) is not None
 
     def create_tracker(self) -> Tracker:
-        """Return a new tracker for one tag."""
+        """Return a new tracker for one beacon."""
         return MyDeviceTracker()
 
 
