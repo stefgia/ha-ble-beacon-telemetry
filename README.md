@@ -37,7 +37,7 @@ scripts/deploy.sh /path/to/homeassistant/config
 
 Home Assistant finds beacons by itself and offers them under **Settings > Devices & services**. Select **Add** on a discovered beacon to set it up.
 
-To add one by hand, go to **Settings > Devices & services > Add integration**, choose **BLE Beacon Telemetry** and pick the beacon from the list. A new beacon can take a few minutes to appear on Auto scanning.
+To add one by hand, go to **Settings > Devices & services > Add integration**, choose **BLE Beacon Telemetry** and pick the beacon from the list. The list only shows beacons whose data Home Assistant has already read. If yours isn't there, choose **Enter a MAC address** and type its address and model. Its entities stay unavailable until a proxy hears its data, which on Auto scanning usually takes a few minutes.
 
 ## Using it
 
