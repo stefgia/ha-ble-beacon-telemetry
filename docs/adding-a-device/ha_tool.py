@@ -15,7 +15,7 @@ Commands:
 
 MAC addresses never appear in the output. Devices show as "Device 1",
 "Device 2" and proxies as "Proxy 1"; `list` saves which label is which MAC in
-~/.cache/ha-holyiot-ble/devices.json, outside the repo, and `watch` takes those
+~/.cache/ha-ble-beacon-telemetry/devices.json, outside the repo, and `watch` takes those
 labels. `watch` and `logs` output is safe to paste into a pull request. `list`
 output is for you only: it shows the names nearby devices broadcast, which can
 be personal (a phone or TV name).
@@ -38,8 +38,8 @@ from typing import Any
 
 import aiohttp
 
-DOMAIN = "holyiot_ble"
-LABELS_FILE = Path.home() / ".cache" / "ha-holyiot-ble" / "devices.json"
+DOMAIN = "ble_beacon_telemetry"
+LABELS_FILE = Path.home() / ".cache" / "ha-ble-beacon-telemetry" / "devices.json"
 MAC = re.compile(r"\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\b")
 
 

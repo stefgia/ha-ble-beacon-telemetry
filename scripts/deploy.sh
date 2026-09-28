@@ -9,11 +9,11 @@ if [[ -z "$config" || ! -f "$config/configuration.yaml" ]]; then
   echo "usage: $0 /path/to/homeassistant/config (the folder with configuration.yaml)" >&2
   exit 1
 fi
-target="$config/custom_components/holyiot_ble"
+target="$config/custom_components/ble_beacon_telemetry"
 
 # Replace wholesale so files deleted here don't linger in HA.
 rm -rf "$target"
 mkdir -p "$target"
-cp -R "$project/custom_components/holyiot_ble/." "$target/"
+cp -R "$project/custom_components/ble_beacon_telemetry/." "$target/"
 find "$target" -name '__pycache__' -type d -prune -exec rm -rf {} +
 echo "Deployed to $(cd "$target" && pwd). Restart Home Assistant to load it."

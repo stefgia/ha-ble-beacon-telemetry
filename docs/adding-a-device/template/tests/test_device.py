@@ -1,6 +1,6 @@
 """Unit tests for DEVICE NAME and its tracker, without Home Assistant."""
 
-from custom_components.holyiot_ble.devices.my_device import (  # TODO
+from custom_components.ble_beacon_telemetry.devices.my_device import (  # TODO
     MyDevice,
     MyDeviceTracker,
 )

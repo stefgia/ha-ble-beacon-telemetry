@@ -8,7 +8,7 @@ from pytest_homeassistant_custom_component.common import (
     mock_restore_cache_with_extra_data,
 )
 
-from custom_components.holyiot_ble.const import CONF_DEVICE, DOMAIN
+from custom_components.ble_beacon_telemetry.const import CONF_DEVICE, DOMAIN
 
 from ..conftest import ADDRESS, FakeBluetooth
 from .fake_device import fake_advert
@@ -19,10 +19,10 @@ LEVEL = "sensor.fake_tag_1234_battery"
 PING = "event.fake_tag_1234_ping"
 
 
-async def setup_tag(hass: HomeAssistant) -> MockConfigEntry:
-    """Add and set up a config entry for a fake tag."""
+async def setup_beacon(hass: HomeAssistant) -> MockConfigEntry:
+    """Add and set up a config entry for a fake beacon."""
     entry = MockConfigEntry(
-        domain=DOMAIN, version=2, unique_id=ADDRESS, title="Fake Tag 1234", data={CONF_DEVICE: "fake"}
+        domain=DOMAIN, unique_id=ADDRESS, title="Fake Tag 1234", data={CONF_DEVICE: "fake"}
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -33,13 +33,13 @@ async def setup_tag(hass: HomeAssistant) -> MockConfigEntry:
 async def test_one_entity_per_description(
     hass: HomeAssistant, bluetooth: FakeBluetooth, entity_registry: er.EntityRegistry
 ) -> None:
-    entry = await setup_tag(hass)
+    entry = await setup_beacon(hass)
     entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
     assert {entity.unique_id for entity in entities} == {f"{ADDRESS}_level", f"{ADDRESS}_ping"}
 
 
 async def test_sensor_follows_the_tracker(hass: HomeAssistant, bluetooth: FakeBluetooth) -> None:
-    await setup_tag(hass)
+    await setup_beacon(hass)
     bluetooth.deliver(fake_advert(level=42))
     assert hass.states.get(LEVEL).state == "42"
 
@@ -48,12 +48,12 @@ async def test_sensor_restored_after_restart(hass: HomeAssistant, bluetooth: Fak
     mock_restore_cache_with_extra_data(
         hass, [(State(LEVEL, "81"), {"native_value": 81, "native_unit_of_measurement": None})]
     )
-    await setup_tag(hass)
+    await setup_beacon(hass)
     assert hass.states.get(LEVEL).state == "81"
 
 
 async def test_event_fires(hass: HomeAssistant, bluetooth: FakeBluetooth) -> None:
-    await setup_tag(hass)
+    await setup_beacon(hass)
     assert hass.states.get(PING).state == "unknown"
     bluetooth.deliver(fake_advert(ping=True))
     assert hass.states.get(PING).attributes["event_type"] == "ping"
@@ -69,7 +69,7 @@ async def test_device_names_the_model_and_links_by_mac(
         connections={(dr.CONNECTION_BLUETOOTH, ADDRESS)},
         identifiers={("bermuda", ADDRESS.lower())},
     )
-    entry = await setup_tag(hass)
+    entry = await setup_beacon(hass)
     [ours] = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
     assert (ours.manufacturer, ours.model, ours.name) == ("Test", "Fake Tag", "Fake Tag 1234")
     linked = device_registry.async_get_devices(connections=ours.connections)
@@ -77,7 +77,7 @@ async def test_device_names_the_model_and_links_by_mac(
 
 
 async def test_unload_stops_listening(hass: HomeAssistant, bluetooth: FakeBluetooth) -> None:
-    entry = await setup_tag(hass)
+    entry = await setup_beacon(hass)
     assert bluetooth.callbacks
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert not bluetooth.callbacks

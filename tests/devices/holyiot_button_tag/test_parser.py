@@ -2,7 +2,7 @@
 
 import pytest
 
-from custom_components.holyiot_ble.devices.holyiot_beacon.parser import (
+from custom_components.ble_beacon_telemetry.devices.holyiot_button_tag.parser import (
     HolyIotReading,
     parse_payload,
 )

@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.holyiot_ble.const import CONF_DEVICE, DOMAIN
+from custom_components.ble_beacon_telemetry.const import CONF_DEVICE, DOMAIN
 
 from ..conftest import ADDRESS, advert
 from .fake_device import fake_advert
@@ -30,12 +30,12 @@ async def start_flow(hass: HomeAssistant, source: str, data: Any = None) -> dict
 def heard(*infos: Any):
     """Make these the adverts Home Assistant has heard."""
     return patch(
-        "custom_components.holyiot_ble.config_flow.async_discovered_service_info",
+        "custom_components.ble_beacon_telemetry.config_flow.async_discovered_service_info",
         return_value=list(infos),
     )
 
 
-async def test_bluetooth_discovery_adds_tag(hass: HomeAssistant) -> None:
+async def test_bluetooth_discovery_adds_beacon(hass: HomeAssistant) -> None:
     result = await start_flow(hass, config_entries.SOURCE_BLUETOOTH, fake_advert())
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "bluetooth_confirm"
@@ -53,14 +53,14 @@ async def test_bluetooth_discovery_of_unsupported_device(hass: HomeAssistant) ->
     assert result["reason"] == "not_supported"
 
 
-async def test_bluetooth_discovery_of_configured_tag(hass: HomeAssistant) -> None:
+async def test_bluetooth_discovery_of_configured_beacon(hass: HomeAssistant) -> None:
     MockConfigEntry(domain=DOMAIN, unique_id=ADDRESS).add_to_hass(hass)
     result = await start_flow(hass, config_entries.SOURCE_BLUETOOTH, fake_advert())
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
 
 
-async def test_user_picks_a_heard_tag(hass: HomeAssistant) -> None:
+async def test_user_picks_a_heard_beacon(hass: HomeAssistant) -> None:
     with heard(fake_advert()):
         result = await start_flow(hass, config_entries.SOURCE_USER)
     assert result["type"] is FlowResultType.FORM

@@ -1,4 +1,4 @@
-"""Follow one tag's adverts and pass what its tracker reports on to the entities."""
+"""Follow one beacon's adverts and pass what its tracker reports on to the entities."""
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ from .device import Device
 _LOGGER = logging.getLogger(__name__)
 
 
-class Tag:
-    """One configured tag: its model, its tracker and its latest values."""
+class Beacon:
+    """One configured beacon: its model, its tracker and its latest values."""
 
     def __init__(self, hass: HomeAssistant, address: str, name: str, device: Device) -> None:
         """Start with nothing known."""
@@ -36,10 +36,10 @@ class Tag:
 
     @callback
     def async_start(self) -> CALLBACK_TYPE:
-        """Listen for the tag's adverts; returns the function that stops it.
+        """Listen for the beacon's adverts; returns the function that stops it.
 
-        ACTIVE mode with the tag's address makes Auto-mode proxies scan actively
-        for this tag now and then, which is when scan-response data arrives.
+        ACTIVE mode with the beacon's address makes Auto-mode proxies scan actively
+        for this beacon now and then, which is when scan-response data arrives.
         """
         mode = (
             BluetoothScanningMode.ACTIVE

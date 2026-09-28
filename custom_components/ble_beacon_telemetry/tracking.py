@@ -34,9 +34,9 @@ class SmoothedLevel:
 
 
 class LatchedPress:
-    """Presses from a flag the tag holds on for a while after each press.
+    """Presses from a flag the beacon holds on for a while after each press.
 
-    Each proxy keeps its own copy of a tag's last scan response, so a press is
+    Each proxy keeps its own copy of a beacon's last scan response, so a press is
     a change from off to on as seen by one proxy. A proxy's first report can be
     a press that's long over, so it doesn't count. Two proxies can report the
     same press a moment apart, so presses closer than `dedup_seconds` count once.

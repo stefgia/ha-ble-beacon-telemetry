@@ -1,4 +1,4 @@
-"""HolyIOT Beacon: the nRF52810 button tag. See README.md in this folder."""
+"""HolyIOT Button Tag: the nRF52810 button tag. See README.md in this folder."""
 
 from __future__ import annotations
 
@@ -18,11 +18,12 @@ from .parser import SERVICE_UUID, parse_service_info
 LONG_PRESS = "long_press"
 
 
-class HolyIotBeacon(Device):
+class HolyIotButtonTag(Device):
     """The HolyIOT nRF52810 button tag."""
 
-    id = "holyiot_beacon"
-    name = "HolyIOT Beacon"
+    id = "holyiot_button_tag"
+    name = "HolyIOT Button Tag"
+    manufacturer = "HolyIOT"
     discovery = ({"connectable": False, "service_data_uuid": SERVICE_UUID},)
     sensors = (
         SensorEntityDescription(
@@ -53,10 +54,10 @@ class HolyIotBeacon(Device):
 
     def create_tracker(self) -> Tracker:
         """Return a new tracker for one tag."""
-        return HolyIotBeaconTracker()
+        return HolyIotButtonTagTracker()
 
 
-class HolyIotBeaconTracker(Tracker):
+class HolyIotButtonTagTracker(Tracker):
     """Smooths the battery level and turns the button flag into long presses."""
 
     def __init__(self) -> None:

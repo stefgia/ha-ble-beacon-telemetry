@@ -1,11 +1,11 @@
 ---
-name: add-holyiot-device
-description: Add support for a new HolyIOT Bluetooth device to the HolyIOT BLE Home Assistant integration. Covers connecting to Home Assistant, capturing and decoding the device's adverts, researching it, writing the device folder and tests, testing it on real hardware and opening a pull request with evidence.
+name: add-beacon-device
+description: Add support for a new Bluetooth beacon to the BLE Beacon Telemetry Home Assistant integration. Covers connecting to Home Assistant, capturing and decoding the device's adverts, researching it, writing the device folder and tests, testing it on real hardware and opening a pull request with evidence.
 ---
 
-# Adding a HolyIOT device
+# Adding a device
 
-This guide takes a HolyIOT device that the integration doesn't support yet, and ends with a pull request that adds it. It's written for an AI coding agent working with a person who owns the device, and a person can follow it just as well. "You" is the agent; "the owner" is the person with the device and the Home Assistant instance.
+This guide takes a Bluetooth device that the integration doesn't support yet, and ends with a pull request that adds it. It's written for an AI coding agent working with a person who owns the device, and a person can follow it just as well. "You" is the agent; "the owner" is the person with the device and the Home Assistant instance.
 
 Work through the steps in order. Each ends with something to check before moving on.
 
@@ -20,15 +20,15 @@ Work through the steps in order. Each ends with something to check before moving
 ## 1. Set up the repo
 
 ```bash
-git clone https://github.com/stefgia/ha-holyiot-ble
-cd ha-holyiot-ble
+git clone https://github.com/stefgia/ha-ble-beacon-telemetry
+cd ha-ble-beacon-telemetry
 git checkout -b add-<device_id>
 uv venv --python 3.14 .venv
 uv pip install --python .venv/bin/python -r requirements_test.txt
 .venv/bin/python -m pytest
 ```
 
-`<device_id>` is a short lowercase name for the model, such as `holyiot_th_sensor`. It becomes the folder name.
+`<device_id>` is a short lowercase name for the model, starting with the maker, such as `holyiot_th_sensor` or `minew_e8`. It becomes the folder name.
 
 **Check:** all tests pass before you change anything.
 
@@ -65,7 +65,7 @@ The device must be near a proxy and switched on. Ask the owner to hold it close 
 .venv/bin/python docs/adding-a-device/ha_tool.py list --seconds 60
 ```
 
-It lists every device Home Assistant hears, strongest signal first, with its label, the proxy that heard it, its broadcast name and its data. HolyIOT devices usually advertise a name starting `Holy-IOT`. If there are several candidates, ask the owner to move the device away and run `list` again: the one whose signal drops is it. Note its label, such as "Device 4".
+It lists every device Home Assistant hears, strongest signal first, with its label, the proxy that heard it, its broadcast name and its data. Many beacons broadcast a name with the maker or model in it, such as `Holy-IOT`. If there are several candidates, ask the owner to move the device away and run `list` again: the one whose signal drops is it. Note its label, such as "Device 4".
 
 `list` output shows the names nearby devices broadcast, which can be personal. Keep it out of the pull request.
 
@@ -111,7 +111,7 @@ Once your branch is installed in Home Assistant (step 9), its debug log shows ev
 
 ```bash
 .venv/bin/python docs/adding-a-device/ha_tool.py debug on
-.venv/bin/python docs/adding-a-device/ha_tool.py logs --grep holyiot_ble
+.venv/bin/python docs/adding-a-device/ha_tool.py logs --grep ble_beacon_telemetry
 .venv/bin/python docs/adding-a-device/ha_tool.py debug off
 ```
 
@@ -123,11 +123,12 @@ Once your branch is installed in Home Assistant (step 9), its debug log shows ev
 
 Search for what others have found, and treat every claim as a hypothesis to test against your captures:
 
-- The manufacturer's product page and datasheet, found by the model number printed on the device or its box. HolyIOT lists its products on holyiot.com.
-- Other projects' decoders: Passive BLE Monitor (`custom-components/ble_monitor`, file `ble_parser/holyiot.py`), Theengs Decoder (`theengs/decoder`), and ESPHome configs on GitHub that mention the service UUID or manufacturer ID.
+- The maker's product page and datasheet, found by the model number printed on the device or its box.
+- Other projects' decoders: Passive BLE Monitor (`custom-components/ble_monitor`, one parser per maker in `ble_parser/`), Theengs Decoder (`theengs/decoder`), and ESPHome configs on GitHub that mention the service UUID or manufacturer ID.
 - Home Assistant community and ESPHome forum threads about the model.
+- The standard frame the device may use, such as Eddystone TLM (service UUID `0xFEAA`), which many makers use for battery and temperature. If a device folder already reads that frame, extend it rather than adding another.
 
-Useful searches: the model number with "BLE" or "advertising", the service UUID (such as `0x5242`), and the broadcast name.
+Useful searches: the model number with "BLE" or "advertising", the service UUID or manufacturer ID, and the broadcast name.
 
 Where a source and your captures disagree, trust the captures and write the difference in the README. Keep the links; they go in the README's Sources section.
 
@@ -138,7 +139,7 @@ Where a source and your captures disagree, trust the captures and write the diff
 Copy the template into place:
 
 ```bash
-cp -r docs/adding-a-device/template/device custom_components/holyiot_ble/devices/<device_id>
+cp -r docs/adding-a-device/template/device custom_components/ble_beacon_telemetry/devices/<device_id>
 mkdir -p tests/devices/<device_id>
 cp docs/adding-a-device/template/tests/* tests/devices/<device_id>/
 ```
@@ -146,13 +147,13 @@ cp docs/adding-a-device/template/tests/* tests/devices/<device_id>/
 Then replace every `TODO`:
 
 1. **`parser.py`**: a pure function from bytes to a reading. Reject anything that doesn't fit exactly (length, fixed bytes, the MAC if the payload repeats it, value ranges), so the device never claims another model's data. Document the byte layout in the module docstring.
-2. **`__init__.py`**: the `Device` subclass and its `Tracker`. The interfaces are in `custom_components/holyiot_ble/device.py`; read its docstrings.
-   - `id` is the folder name. `name` is the model name shown in Home Assistant.
+2. **`__init__.py`**: the `Device` subclass and its `Tracker`. The interfaces are in `custom_components/ble_beacon_telemetry/device.py`; read its docstrings.
+   - `id` is the folder name. `name` is the model name and `manufacturer` the maker, both shown in Home Assistant.
    - `discovery` lists the advert filters Home Assistant uses to find the device, with the keys of the `bluetooth` list in `manifest.json`.
-   - `matches()` must be specific. Several HolyIOT models send the same `0x5242` frame, told apart by its content; see `devices/holyiot_beacon`.
+   - `matches()` must be specific. Models, sometimes from different makers, can share a service UUID or manufacturer ID and differ only in the content. `devices/holyiot_button_tag` claims HolyIOT's `0x5242` frame only when it reports a button, for example. The contract test fails if two devices claim the same sample.
    - Describe entities with Home Assistant's `SensorEntityDescription` and `EventEntityDescription`. Use a `device_class` where one fits; it names the entity and sets its icon and unit handling.
    - Put stateful handling in the tracker. `tracking.py` has `SmoothedLevel` for jittery readings and `LatchedPress` for flags that stay on after an event. Use them before writing your own.
-3. **Register the device**: import it in `custom_components/holyiot_ble/devices/__init__.py` and add it to `DEVICES`.
+3. **Register the device**: import it in `custom_components/ble_beacon_telemetry/devices/__init__.py` and add it to `DEVICES`.
 4. **`manifest.json`**: add each `discovery` filter to the `bluetooth` list if it isn't there already.
 5. **`strings.json` and `translations/en.json`** (keep them identical): for each entity with a `translation_key`, add its name under `entity.<platform>.<key>`, and for events, the name of each event type.
 
@@ -168,7 +169,7 @@ Then replace every `TODO`:
 .venv/bin/python -m pytest
 ```
 
-`tests/devices/test_contract.py` runs for every device and checks the README, the manifest, entity names, the samples and that they use test MACs. Fix what it reports; don't change it to pass.
+`tests/devices/test_contract.py` runs for every device. It checks the README and its row in the main README, the manufacturer, the manifest, entity names, the samples and that they use test MACs, that no device claims another's samples, and that no `TODO` or template placeholder is left. Fix what it reports; don't change it to pass.
 
 **Check:** all tests pass.
 

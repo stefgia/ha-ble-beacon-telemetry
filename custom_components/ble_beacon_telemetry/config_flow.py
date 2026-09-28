@@ -1,4 +1,4 @@
-"""Config flow for HolyIOT BLE: one entry per tag, found by Bluetooth discovery."""
+"""Config flow for BLE Beacon Telemetry: one entry per beacon, found by Bluetooth discovery."""
 
 from __future__ import annotations
 
@@ -20,26 +20,26 @@ from .devices import find_device
 _LOGGER = logging.getLogger(__name__)
 
 
-def tag_title(device: Device, address: str) -> str:
-    """Name a tag after its model and the last four hex digits of its MAC."""
+def beacon_title(device: Device, address: str) -> str:
+    """Name a beacon after its model and the last four hex digits of its MAC."""
     return f"{device.name} {address.replace(':', '')[-4:]}"
 
 
-class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Add a HolyIOT tag."""
+class BeaconConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Add a beacon."""
 
-    VERSION = 2
+    VERSION = 1
 
     def __init__(self) -> None:
         """Set up the flow's state."""
         self._discovered: tuple[Device, str] | None = None
-        # Tags offered in the user step: address -> (model, title).
+        # Beacons offered in the user step: address -> (model, title).
         self._candidates: dict[str, tuple[Device, str]] = {}
 
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
-        """Handle a tag found by Bluetooth discovery."""
+        """Handle a beacon found by Bluetooth discovery."""
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
         if (device := find_device(discovery_info)) is None:
@@ -51,14 +51,14 @@ class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
                 {mfr: data.hex() for mfr, data in discovery_info.manufacturer_data.items()},
             )
             return self.async_abort(reason="not_supported")
-        self._discovered = (device, tag_title(device, discovery_info.address))
+        self._discovered = (device, beacon_title(device, discovery_info.address))
         self.context["title_placeholders"] = {"name": self._discovered[1]}
         return await self.async_step_bluetooth_confirm()
 
     async def async_step_bluetooth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Ask before adding a discovered tag."""
+        """Ask before adding a discovered beacon."""
         assert self._discovered is not None
         device, title = self._discovered
         if user_input is not None:
@@ -71,7 +71,7 @@ class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Pick one of the tags Home Assistant has heard but not yet added."""
+        """Pick one of the beacons Home Assistant has heard but not yet added."""
         if user_input is not None:
             address = user_input[CONF_ADDRESS]
             await self.async_set_unique_id(address, raise_on_progress=False)
@@ -81,7 +81,7 @@ class HolyIotConfigFlow(ConfigFlow, domain=DOMAIN):
 
         configured = self._async_current_ids(include_ignore=False)
         self._candidates = {
-            info.address: (device, tag_title(device, info.address))
+            info.address: (device, beacon_title(device, info.address))
             for info in async_discovered_service_info(self.hass, connectable=False)
             if info.address not in configured and (device := find_device(info)) is not None
         }
