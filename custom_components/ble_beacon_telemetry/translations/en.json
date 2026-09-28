@@ -3,18 +3,27 @@
     "flow_title": "{name}",
     "step": {
       "user": {
-        "description": "Choose a Bluetooth beacon that Home Assistant has heard.",
+        "description": "Choose a Bluetooth beacon that Home Assistant has heard, or enter its MAC address.",
         "data": {
           "address": "Beacon"
+        }
+      },
+      "manual": {
+        "description": "Enter the beacon's Bluetooth MAC address, for example C0:FF:EE:00:12:34. Its readings appear once a Bluetooth proxy hears its data, usually within a few minutes.",
+        "data": {
+          "address": "MAC address",
+          "device": "Model"
         }
       },
       "bluetooth_confirm": {
         "description": "Add {name}?"
       }
     },
+    "error": {
+      "invalid_address": "Enter the address as six pairs of hex digits separated by colons."
+    },
     "abort": {
       "already_configured": "This beacon is already set up.",
-      "no_devices_found": "No supported beacons heard yet. Some beacons only send their data while a Bluetooth proxy scans actively, so this can take a few minutes.",
       "not_supported": "This device sends data in a format this integration doesn't read yet."
     }
   },
